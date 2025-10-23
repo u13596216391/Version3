@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mine_platform_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./media:/app/media
+      - ./db.sqlite3:/app/db.sqlite3
+    environment:
+      - DJANGO_SETTINGS_MODULE=integrated_mine.settings
+      - DEBUG=True
+    restart: unless-stopped
+    networks:
+      - mine_network
+
+  # 前端服务
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mine_platform_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - mine_network
+
+networks:
+  mine_network:
+    driver: bridge
+
+volumes:
+  media_data:
+  db_data:
