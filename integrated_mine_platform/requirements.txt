@@ -1,0 +1,30 @@
+# 集成矿山智能预测平台 - Python依赖
+
+# Django核心
+Django==5.0.0
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+
+# 数据库
+mysqlclient==2.2.0
+
+# 数据处理
+numpy==1.24.3
+pandas==2.0.3
+scikit-learn==1.3.0
+
+# 深度学习
+torch==2.1.0
+torchvision==0.16.0
+
+# 数据可视化
+matplotlib==3.7.2
+seaborn==0.12.2
+
+# 工具库
+python-dateutil==2.8.2
+pytz==2023.3
+pillow==10.0.0
+
+# 开发工具
+autopep8==2.0.4
