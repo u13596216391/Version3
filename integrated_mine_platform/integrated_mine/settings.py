@@ -33,6 +33,8 @@ INSTALLED_APPS = [
     'microseismic_app',  # 微震预测
     'monitoring_app',  # 实时监控
     'dashboard_app',  # 数据大屏
+    'analysis_app',  # 多源数据分析
+    'data_app',  # 数据管理
 ]
 
 MIDDLEWARE = [
@@ -77,8 +79,12 @@ WSGI_APPLICATION = 'integrated_mine.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('DB_NAME', 'mine_platform_db'),
+        'USER': os.environ.get('DB_USER', 'postgres'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'postgres123'),
+        'HOST': os.environ.get('DB_HOST', 'db'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -118,6 +124,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# File upload settings
+DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB in bytes
+FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100MB in bytes
+
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
@@ -133,4 +143,30 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 100,
+}
+
+# Celery配置
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'Asia/Shanghai'
+
+# Celery Beat定时任务配置
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    # 每10秒生成一次实时模拟数据
+    'generate-simulated-data': {
+        'task': 'monitoring_app.tasks.generate_simulated_data',
+        'schedule': 10.0,  # 10秒
+        'args': (1,),  # 每次生成1条数据（每种类型）
+    },
+    # 每天凌晨2点清理7天前的模拟数据
+    'cleanup-old-simulated-data': {
+        'task': 'monitoring_app.tasks.cleanup_old_simulated_data',
+        'schedule': crontab(hour=2, minute=0),
+        'args': (7,),  # 保留7天
+    },
 }

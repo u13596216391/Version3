@@ -3,6 +3,7 @@ import uuid
 import os
 import time
 import json
+import logging
 from datetime import datetime
 import numpy as np
 import pandas as pd
@@ -12,7 +13,8 @@ from sklearn.model_selection import train_test_split
 from django.utils import timezone
 from django.conf import settings
 
-# --- 注意：不再需要 matplotlib ---
+# 配置日志
+logger = logging.getLogger(__name__)
 
 from .models import TrainingRun, ModelResult
 from .models_lib.lstm import LSTMPredictor, GRUPredictor, TransformerPredictor
@@ -69,10 +71,39 @@ class PredictionTrainingService:
     def run(self):
         try:
             self._update_status(TrainingRun.Status.RUNNING, f"任务开始，正在使用设备: {self.device}")
-            print(f"[{self.task_id}] 使用设备: {self.device}")
+            logger.info(f"[{self.task_id}] 使用设备: {self.device}")
             
             df = pd.read_csv(self.temp_file_path)
-            raw_data = df.iloc[:, -1].values
+            logger.info(f"[{self.task_id}] 读取CSV文件，形状: {df.shape}, 列: {df.columns.tolist()}")
+            
+            # 根据数据类型选择目标列
+            if 'magnitude' in df.columns:
+                target_col = 'magnitude'
+            elif 'energy' in df.columns:
+                target_col = 'energy'
+            elif 'resistance_value' in df.columns:
+                target_col = 'resistance_value'
+            else:
+                # 如果没有明确的列，使用最后一列
+                target_col = df.columns[-1]
+            
+            logger.info(f"[{self.task_id}] 使用目标列: {target_col}")
+            raw_data = df[target_col].values
+            logger.info(f"[{self.task_id}] 原始数据量: {len(raw_data)}, 数据类型: {raw_data.dtype}")
+            logger.info(f"[{self.task_id}] 前5个值: {raw_data[:5]}")
+            logger.info(f"[{self.task_id}] NaN数量: {pd.isna(raw_data).sum()}, Inf数量: {np.isinf(raw_data).sum()}")
+            
+            # 数据清洗：移除NaN和Inf值
+            raw_data = pd.Series(raw_data).replace([np.inf, -np.inf], np.nan).dropna().values
+            logger.info(f"[{self.task_id}] 清洗后数据量: {len(raw_data)}")
+            
+            if len(raw_data) == 0:
+                raise ValueError("清洗后没有有效数据！所有数据都是NaN或Inf")
+            
+            logger.info(f"[{self.task_id}] 数据范围: [{raw_data.min():.2f}, {raw_data.max():.2f}]")
+            
+            if len(raw_data) < 100:
+                raise ValueError(f"数据量不足（仅{len(raw_data)}条），至少需要100条有效数据")
             
             cfg = self.config['hyperparameters']
             X, y = [], []
@@ -81,6 +112,11 @@ class PredictionTrainingService:
                 y.append(raw_data[i+cfg['window_size']])
             
             X, y = np.array(X).reshape(-1, cfg['window_size'], 1), np.array(y)
+            
+            # 检查是否有NaN
+            if np.isnan(X).any() or np.isnan(y).any():
+                raise ValueError("数据处理后仍包含NaN值")
+            
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=cfg['test_size'], shuffle=False)
             
             train_loader = DataLoader(TensorDataset(torch.FloatTensor(X_train), torch.FloatTensor(y_train)), batch_size=cfg['batch_size'], shuffle=True)
@@ -146,7 +182,7 @@ class PredictionTrainingService:
                     training_time_seconds=training_time,
                     plot_file_path=plot_relative_path # 保存JSON文件路径
                 )
-                print(f"[{self.task_id}] 已成功保存 {model_name} 的结果和绘图数据。")
+                logger.info(f"[{self.task_id}] 已成功保存 {model_name} 的结果和绘图数据。")
 
             self._update_status(TrainingRun.Status.SUCCESS, "所有模型训练完成！")
 
@@ -155,7 +191,7 @@ class PredictionTrainingService:
             error_msg = traceback.format_exc()
             self.run_instance.error_message = error_msg
             self._update_status(TrainingRun.Status.FAILED, f"任务失败: {e}")
-            print(f"[{self.task_id}] 任务失败: {error_msg}")
+            logger.error(f"[{self.task_id}] 任务失败: {error_msg}")
         finally:
             if os.path.exists(self.temp_file_path):
                 os.remove(self.temp_file_path)

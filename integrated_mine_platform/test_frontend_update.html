@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>前端更新测试</title>
+</head>
+<body>
+    <h1>前端更新验证</h1>
+    <div id="test-results"></div>
+
+    <script>
+        async function testUpdate() {
+            const results = document.getElementById('test-results');
+            results.innerHTML = '<p>正在测试...</p>';
+
+            try {
+                // 1. 测试JS文件是否包含更新
+                const jsResponse = await fetch('/assets/AnalysisPage-DJIyM6eX.js?' + Date.now());
+                const jsContent = await jsResponse.text();
+                
+                const hasDatasets = jsContent.includes('/api/data/datasets/');
+                const hasAnalysis = jsContent.includes('analysis');
+                
+                results.innerHTML = `
+                    <h2>测试结果:</h2>
+                    <p>✅ JS文件大小: ${jsContent.length} 字节</p>
+                    <p>${hasDatasets ? '✅' : '❌'} 包含datasets API调用</p>
+                    <p>${hasAnalysis ? '✅' : '❌'} 包含analysis相关代码</p>
+                    
+                    <h2>文件内容前500字符:</h2>
+                    <pre>${jsContent.substring(0, 500)}</pre>
+                    
+                    <h2>搜索关键词:</h2>
+                    <p>datasets出现次数: ${(jsContent.match(/datasets/g) || []).length}</p>
+                    <p>dataSource出现次数: ${(jsContent.match(/dataSource/g) || []).length}</p>
+                `;
+            } catch (error) {
+                results.innerHTML = `<p>❌ 错误: ${error.message}</p>`;
+            }
+        }
+
+        testUpdate();
+    </script>
+</body>
+</html>

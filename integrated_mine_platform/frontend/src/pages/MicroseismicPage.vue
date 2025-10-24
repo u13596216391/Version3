@@ -1,17 +1,13 @@
 <template>
-  <div class="microseismic-page">
-    <div class="tech-card">
-      <h2 class="text-2xl font-bold glow-text mb-4">微震预测</h2>
-      <p class="text-gray-400">上传数据进行微震能量预测分析</p>
-    </div>
-
-    <div class="mt-8 text-center text-gray-400">
-      <p>该功能正在集成中...</p>
-      <p class="text-sm mt-2">将整合原有的微震预测算法和模型</p>
+  <div class="deprecated-page p-8">
+    <div class="bg-yellow-50 p-6 rounded-md border border-yellow-200">
+      <h2 class="text-xl font-bold text-yellow-800">已迁移：微震预测页面</h2>
+      <p class="mt-2 text-yellow-700">微震预测功能已整合入“深度学习预测模块”。请访问 <router-link to="/predictor" class="text-violet-600 underline">深度学习预测</router-link> 页面以继续使用。</p>
+      <p class="mt-4 text-sm text-gray-600">此页面保留为兼容性提示，可安全删除或忽略。</p>
     </div>
   </div>
 </template>
 
 <script setup>
-// 微震预测功能将在后续集成
+// 该文件保留为兼容提示
 </script>

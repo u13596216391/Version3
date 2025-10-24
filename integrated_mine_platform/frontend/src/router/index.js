@@ -8,13 +8,8 @@ const routes = [
   },
   {
     path: '/predictor',
-    name: 'Predictor',
-    component: () => import('@/pages/PredictorPage.vue')
-  },
-  {
-    path: '/microseismic',
-    name: 'Microseismic',
-    component: () => import('@/pages/MicroseismicPage.vue')
+    name: 'DeepLearningPredictor',
+    component: () => import('@/pages/DeepLearningPredictorPage.vue')
   },
   {
     path: '/monitoring',
@@ -25,6 +20,16 @@ const routes = [
     path: '/data-view',
     name: 'DataView',
     component: () => import('@/pages/DataViewPage.vue')
+  },
+  {
+    path: '/analysis',
+    name: 'Analysis',
+    component: () => import('@/pages/AnalysisPage.vue')
+  },
+  {
+    path: '/visualization',
+    name: 'Visualization',
+    component: () => import('@/pages/VisualizationPage.vue')
   }
 ]
 

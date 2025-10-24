@@ -14,7 +14,9 @@
     "axios": "^1.10.0",
     "echarts": "^5.5.0",
     "vue-echarts": "^7.0.3",
-    "pinia": "^2.2.0"
+    "pinia": "^2.2.0",
+    "chart.js": "^4.4.0",
+    "plotly.js-dist": "^2.27.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",

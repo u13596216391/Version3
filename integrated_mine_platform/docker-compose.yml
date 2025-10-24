@@ -1,20 +1,144 @@
 version: '3.8'
 
 services:
+  # PostgreSQL 数据库服务
+  db:
+    image: postgres:15-alpine
+    container_name: mine_platform_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-mine_platform_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - mine_network
+
+  # Redis 缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: mine_platform_redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - mine_network
+
   # 后端服务
   backend:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: mine_platform_backend
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=integrated_mine.settings
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-mine_platform_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      - DJANGO_ENV=${DJANGO_ENV:-development}
+      - DEBUG=${DEBUG:-True}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
     ports:
       - "8000:8000"
     volumes:
       - ./media:/app/media
-      - ./db.sqlite3:/app/db.sqlite3
+      - ./logs:/app/logs
+      - ./staticfiles:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mine_network
+
+  # Celery Worker 服务
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mine_platform_celery_worker
+    command: ["celery", "-A", "integrated_mine", "worker", "--loglevel=info"]
+    env_file:
+      - .env
     environment:
       - DJANGO_SETTINGS_MODULE=integrated_mine.settings
-      - DEBUG=True
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-mine_platform_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
+    volumes:
+      - ./media:/app/media
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mine_network
+
+  # Celery Beat 定时任务服务
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mine_platform_celery_beat
+    command: ["celery", "-A", "integrated_mine", "beat", "--loglevel=info"]
+    env_file:
+      - .env
+    environment:
+      - DJANGO_SETTINGS_MODULE=integrated_mine.settings
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-mine_platform_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres123}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-redis123}@redis:6379/0
+    volumes:
+      - ./logs:/app/logs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - mine_network
@@ -24,19 +148,48 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=${VITE_API_BASE_URL:-http://localhost:8000}
     container_name: mine_platform_frontend
     ports:
       - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/ssl:/etc/nginx/ssl:ro
     depends_on:
       - backend
     restart: unless-stopped
     networks:
       - mine_network
 
+  # Nginx 反向代理（可选，用于负载均衡）
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: mine_platform_nginx
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   restart: unless-stopped
+  #   networks:
+  #     - mine_network
+
 networks:
   mine_network:
     driver: bridge
 
 volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
   media_data:
-  db_data:
+    driver: local
+  static_data:
+    driver: local
+

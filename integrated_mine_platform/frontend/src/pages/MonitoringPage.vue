@@ -1,8 +1,10 @@
 <template>
   <div class="monitoring-page">
     <div class="tech-card mb-6">
-      <h2 class="text-2xl font-bold glow-text mb-4">实时监控</h2>
-      <p class="text-gray-400">实时监测矿山各项指标数据</p>
+      <div>
+        <h2 class="text-2xl font-bold glow-text mb-2">实时监控</h2>
+        <p class="text-gray-400">实时监测矿山各项指标数据</p>
+      </div>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

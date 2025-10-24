@@ -19,6 +19,7 @@ class MonitoringData(models.Model):
     value = models.FloatField(verbose_name='数值')
     unit = models.CharField(max_length=20, verbose_name='单位')
     is_abnormal = models.BooleanField(default=False, verbose_name='是否异常')
+    is_simulated = models.BooleanField(default=False, verbose_name='是否为模拟数据', db_index=True)
     
     class Meta:
         verbose_name = '监控数据'

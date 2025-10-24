@@ -2,8 +2,10 @@
   <div class="dashboard-container">
     <!-- 标题区 -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold glow-text mb-2">矿山智能监测数据大屏</h1>
-      <p class="text-tech-cyan text-lg">实时监测 · 智能预测 · 精准决策</p>
+      <div class="mb-4">
+        <h1 class="text-4xl font-bold glow-text mb-2">矿山智能监测数据大屏</h1>
+        <p class="text-tech-cyan text-lg">实时监测 · 智能预测 · 精准决策</p>
+      </div>
       <div class="text-sm text-gray-400 mt-2">
         更新时间: {{ currentTime }}
       </div>
@@ -36,6 +38,25 @@
         icon="⚠️"
         color="from-orange-500 to-red-500"
       />
+    </div>
+
+    <!-- 实时数据监控区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-8">
+      <ChartCard title="微震能量监测">
+        <CompactRealtimeChart type="microseismic" />
+      </ChartCard>
+
+      <ChartCard title="支架阻力监测">
+        <CompactRealtimeChart type="support_resistance" />
+      </ChartCard>
+
+      <ChartCard title="瓦斯浓度监测">
+        <CompactRealtimeChart type="gas" />
+      </ChartCard>
+
+      <ChartCard title="环境温度监测">
+        <CompactRealtimeChart type="temperature" />
+      </ChartCard>
     </div>
 
     <!-- 图表区域 -->
@@ -77,6 +98,7 @@ import TaskTrendChart from '@/components/dashboard/TaskTrendChart.vue'
 import AlertDistributionChart from '@/components/dashboard/AlertDistributionChart.vue'
 import AlertList from '@/components/dashboard/AlertList.vue'
 import SystemStatus from '@/components/dashboard/SystemStatus.vue'
+import CompactRealtimeChart from '@/components/dashboard/CompactRealtimeChart.vue'
 
 const currentTime = ref('')
 const stats = ref({

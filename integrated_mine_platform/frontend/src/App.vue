@@ -56,10 +56,11 @@ const route = useRoute()
 
 const routes = [
   { path: '/', name: '数据大屏' },
-  { path: '/predictor', name: '支架阻力预测' },
-  { path: '/microseismic', name: '微震预测' },
+  { path: '/predictor', name: '深度学习预测' },
   { path: '/monitoring', name: '实时监控' },
   { path: '/data-view', name: '数据查看' },
+  { path: '/analysis', name: '多源数据分析' },
+  { path: '/visualization', name: '高级可视化' },
 ]
 </script>
 
